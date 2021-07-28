@@ -175,7 +175,7 @@ class DeferredCache(Generic[KT, VT]):
     def set(
         self,
         key: KT,
-        value: defer.Deferred[VT],
+        value: "defer.Deferred[VT]",
         callback: Optional[Callable[[], None]] = None,
     ) -> defer.Deferred:
         """Adds a new entry to the cache (or updates an existing one).
