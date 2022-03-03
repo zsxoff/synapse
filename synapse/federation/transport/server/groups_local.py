@@ -97,6 +97,7 @@ class FederationGroupsBulkPublicisedServlet(BaseGroupsLocalServlet):
     """Get roles in a group"""
 
     PATH = "/get_groups_publicised"
+    WORKER_PATH = "/get_groups_publicised$"
 
     async def on_POST(
         self, origin: str, content: JsonDict, query: Dict[bytes, List[bytes]]
