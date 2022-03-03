@@ -476,6 +476,7 @@ class PublicRoomListRestServlet(TransactionRestServlet):
 # TODO: Needs unit testing
 class RoomMemberListRestServlet(RestServlet):
     PATTERNS = client_patterns("/rooms/(?P<room_id>[^/]*)/members$", v1=True)
+    WORKER_PATTERNS = PATTERNS
 
     def __init__(self, hs: "HomeServer"):
         super().__init__()
@@ -530,6 +531,7 @@ class RoomMemberListRestServlet(RestServlet):
 # except it does custom AS logic and has a simpler return format
 class JoinedRoomMemberListRestServlet(RestServlet):
     PATTERNS = client_patterns("/rooms/(?P<room_id>[^/]*)/joined_members$", v1=True)
+    WORKER_PATTERNS = PATTERNS
 
     def __init__(self, hs: "HomeServer"):
         super().__init__()
@@ -598,6 +600,7 @@ class RoomMessageListRestServlet(RestServlet):
 # TODO: Needs unit testing
 class RoomStateRestServlet(RestServlet):
     PATTERNS = client_patterns("/rooms/(?P<room_id>[^/]*)/state$", v1=True)
+    WORKER_PATTERNS = PATTERNS
 
     def __init__(self, hs: "HomeServer"):
         super().__init__()
@@ -684,6 +687,7 @@ class RoomEventContextServlet(RestServlet):
     PATTERNS = client_patterns(
         "/rooms/(?P<room_id>[^/]*)/context/(?P<event_id>[^/]*)$", v1=True
     )
+    WORKER_PATTERNS = PATTERNS
 
     def __init__(self, hs: "HomeServer"):
         super().__init__()
