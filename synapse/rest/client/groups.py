@@ -874,6 +874,7 @@ class PublicisedGroupsForUserServlet(RestServlet):
     """Get the list of groups a user is advertising"""
 
     PATTERNS = client_patterns("/publicised_groups/(?P<user_id>[^/]*)$")
+    WORKER_PATTERNS = client_patterns("/publicised_groups/")
 
     def __init__(self, hs: "HomeServer"):
         super().__init__()
@@ -896,6 +897,7 @@ class PublicisedGroupsForUsersServlet(RestServlet):
     """Get the list of groups a user is advertising"""
 
     PATTERNS = client_patterns("/publicised_groups$")
+    WORKER_PATTERNS = PATTERNS
 
     def __init__(self, hs: "HomeServer"):
         super().__init__()
@@ -919,6 +921,7 @@ class GroupsForUserServlet(RestServlet):
     """Get all groups the logged in user is joined to"""
 
     PATTERNS = client_patterns("/joined_groups$")
+    WORKER_PATTERNS = PATTERNS
 
     def __init__(self, hs: "HomeServer"):
         super().__init__()
