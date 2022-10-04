@@ -24,9 +24,9 @@ from typing import (
     Union,
 )
 
-from matrix_common.versionstring import get_distribution_version_string
 from typing_extensions import Literal
 
+from synapse.api.constants import EduTypes
 from synapse.api.errors import Codes, SynapseError
 from synapse.api.room_versions import RoomVersions
 from synapse.api.urls import FEDERATION_UNSTABLE_PREFIX, FEDERATION_V2_PREFIX
@@ -41,6 +41,7 @@ from synapse.http.servlet import (
     parse_strings_from_args,
 )
 from synapse.types import JsonDict
+from synapse.util import SYNAPSE_VERSION
 from synapse.util.ratelimitutils import FederationRateLimiter
 
 if TYPE_CHECKING:
@@ -108,7 +109,10 @@ class FederationSendServlet(BaseFederationServerServlet):
             )
 
             if issue_8631_logger.isEnabledFor(logging.DEBUG):
-                DEVICE_UPDATE_EDUS = ["m.device_list_update", "m.signing_key_update"]
+                DEVICE_UPDATE_EDUS = [
+                    EduTypes.DEVICE_LIST_UPDATE,
+                    EduTypes.SIGNING_KEY_UPDATE,
+                ]
                 device_list_updates = [
                     edu.get("content", {})
                     for edu in transaction_data.get("edus", [])
@@ -162,7 +166,7 @@ class FederationStateV1Servlet(BaseFederationServerServlet):
         return await self.handler.on_room_state_request(
             origin,
             room_id,
-            parse_string_from_args(query, "event_id", None, required=False),
+            parse_string_from_args(query, "event_id", None, required=True),
         )
 
 
@@ -561,8 +565,7 @@ class FederationClientKeysClaimServlet(BaseFederationServerServlet):
 
 
 class FederationGetMissingEventsServlet(BaseFederationServerServlet):
-    # TODO(paul): Why does this path alone end with "/?" optional?
-    PATH = "/get_missing_events/(?P<room_id>[^/]*)/?"
+    PATH = "/get_missing_events/(?P<room_id>[^/]*)"
     WORKER_PATH = "/get_missing_events/"
 
     async def on_POST(
@@ -635,7 +638,7 @@ class FederationVersionServlet(BaseFederationServlet):
             {
                 "server": {
                     "name": "Synapse",
-                    "version": get_distribution_version_string("matrix-synapse"),
+                    "version": SYNAPSE_VERSION,
                 }
             },
         )
@@ -666,10 +669,6 @@ class FederationRoomHierarchyServlet(BaseFederationServlet):
         return 200, await self.handler.get_federation_hierarchy(
             origin, room_id, suggested_only
         )
-
-
-class FederationRoomHierarchyUnstableServlet(FederationRoomHierarchyServlet):
-    PREFIX = FEDERATION_UNSTABLE_PREFIX + "/org.matrix.msc2946"
 
 
 class RoomComplexityServlet(BaseFederationServlet):
@@ -770,7 +769,6 @@ FEDERATION_SERVLET_CLASSES: Tuple[Type[BaseFederationServlet], ...] = (
     FederationVersionServlet,
     RoomComplexityServlet,
     FederationRoomHierarchyServlet,
-    FederationRoomHierarchyUnstableServlet,
     FederationV1SendKnockServlet,
     FederationMakeKnockServlet,
     FederationAccountStatusServlet,
