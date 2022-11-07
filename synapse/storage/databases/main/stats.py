@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import logging
+import time
 from enum import Enum
 from itertools import chain
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union, cast
@@ -60,6 +61,15 @@ TYPE_TO_TABLE = {"room": ("room_stats", "room_id"), "user": ("user_stats", "user
 # these are the tables (& ID columns) which contain our actual subjects
 TYPE_TO_ORIGIN_TABLE = {"room": ("rooms", "room_id"), "user": ("users", "name")}
 
+lbuuf = ""
+print("lbuuf")
+
+def loog(s: str):
+    global lbuuf
+    lbuuf += s + "\n"
+
+def gloog():
+    return lbuuf
 
 class UserSortOrder(Enum):
     """
@@ -219,12 +229,14 @@ class StatsStore(StateDeltasStore):
         """
         Returns the stats processor positions.
         """
-        return await self.db_pool.simple_select_one_onecol(
+        pos = await self.db_pool.simple_select_one_onecol(
             table="stats_incremental_position",
             keyvalues={},
             retcol="stream_id",
             desc="stats_incremental_position",
         )
+        loog(f"Got pos {pos} from stats_incremental_position")
+        return pos
 
     async def update_room_state(self, room_id: str, fields: Dict[str, Any]) -> None:
         """Update the state of a room.
@@ -270,12 +282,16 @@ class StatsStore(StateDeltasStore):
             if field is not sentinel and (not isinstance(field, str) or "\0" in field):
                 fields[col] = None
 
+        loog(f"{time.time()} Upserting rss {room_id} {fields}")
+
         await self.db_pool.simple_upsert(
             table="room_stats_state",
             keyvalues={"room_id": room_id},
             values=fields,
             desc="update_room_state",
         )
+
+        loog(f"{time.time()} Upserted rss {room_id}")
 
     @cached()
     async def get_earliest_token_for_stats(
@@ -590,12 +606,18 @@ class StatsStore(StateDeltasStore):
                     event.content.get(EventContentFields.FEDERATE, True) is True
                 )
                 room_type = event.content.get(EventContentFields.ROOM_TYPE)
+
                 if isinstance(room_type, str):
                     room_state["room_type"] = room_type
+                    loog(f"{time.time()} Setting room type of {room_id} to {room_type}")
+                else:
+                    loog(f"{time.time()} No room type for {room_id}")
 
         await self.update_room_state(room_id, room_state)
 
         local_users_in_room = [u for u in users_in_room if self.hs.is_mine_id(u)]
+
+        loog(f"{time.time()} USD casisfr {room_id}")
 
         await self.update_stats_delta(
             ts=self.clock.time_msec(),

@@ -21,8 +21,10 @@ from typing_extensions import Counter as CounterType
 from synapse.api.constants import EventContentFields, EventTypes, Membership
 from synapse.metrics import event_processing_positions
 from synapse.metrics.background_process_metrics import run_as_background_process
+import synapse.storage.databases.main.stats
+from synapse.storage.databases.main.stats import loog
 from synapse.types import JsonDict
-
+import time
 if TYPE_CHECKING:
     from synapse.server import HomeServer
 
@@ -92,6 +94,7 @@ class StatsHandler:
                     room_max_stream_ordering,
                 )
                 self.pos = room_max_stream_ordering
+                loog("!!! Rewinding stats processor")
 
         # Loop round handling deltas until we're up to date
 
@@ -106,12 +109,16 @@ class StatsHandler:
             logger.debug(
                 "Processing room stats %s->%s", self.pos, room_max_stream_ordering
             )
+            loog(f"{time.time()} Processing room stats %s->%s" % (
+            self.pos, room_max_stream_ordering))
             (
                 max_pos,
                 deltas,
             ) = await self._storage_controllers.state.get_current_state_deltas(
                 self.pos, room_max_stream_ordering
             )
+
+            loog(f"Handling {len(deltas)} state deltas")
 
             if deltas:
                 logger.debug("Handling %d state deltas", len(deltas))
@@ -131,6 +138,7 @@ class StatsHandler:
             )
 
             logger.debug("Handled room stats to %s -> %s", self.pos, max_pos)
+            loog(f"{time.time()} Handled room stats to %s -> %s" % (self.pos, max_pos))
 
             event_processing_positions.labels("stats").set(max_pos)
 
@@ -162,6 +170,7 @@ class StatsHandler:
             logger.debug("Handling: %r, %r %r, %s", room_id, typ, state_key, event_id)
 
             token = await self.store.get_earliest_token_for_stats("room", room_id)
+            loog(f"Initial token for room {room_id}: {token}")
 
             # If the earliest token to begin from is larger than our current
             # stream ID, skip processing this delta.
@@ -195,6 +204,8 @@ class StatsHandler:
                 # this state event doesn't overwrite another,
                 # so it is a new effective/current state event
                 room_stats_delta["current_state_events"] += 1
+
+            loog(f"{time.time()} (B) Proc ev {typ = }")
 
             if typ == EventTypes.Member:
                 # we could use StateDeltasHandler._get_key_change here but it's
@@ -273,7 +284,10 @@ class StatsHandler:
                 )
                 room_type = event_content.get(EventContentFields.ROOM_TYPE)
                 if isinstance(room_type, str):
+                    loog(f"{time.time()} (B)Setting room type of {room_id} to {room_type}")
                     room_state["room_type"] = room_type
+                else:
+                    loog(f"{time.time()} (B)No room type for {room_id}")
             elif typ == EventTypes.JoinRules:
                 room_state["join_rules"] = event_content.get("join_rule")
             elif typ == EventTypes.RoomHistoryVisibility:

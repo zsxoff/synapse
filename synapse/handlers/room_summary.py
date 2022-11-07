@@ -36,6 +36,7 @@ from synapse.api.errors import (
 )
 from synapse.api.ratelimiting import Ratelimiter
 from synapse.events import EventBase
+from synapse.storage.databases.main.stats import gloog
 from synapse.types import JsonDict, Requester
 from synapse.util.caches.response_cache import ResponseCache
 
@@ -699,6 +700,14 @@ class RoomSummaryHandler:
         # _is_local_room_accessible on the room before we get here, so
         # there should always be an entry
         assert stats is not None, "unable to retrieve stats for %s" % (room_id,)
+
+        logger.error("XXX room stats %r", stats)
+
+        rows = await self._store.db_pool.simple_select_list("events", {"room_id": room_id}, ("stream_ordering", "type", "state_key"), "dd")
+        for r in sorted(rows, key=lambda r: r["stream_ordering"]):
+            logger.error("XXX SO %3d = %r.%r", r["stream_ordering"], r["type"], r["state_key"])
+
+        logger.error("XXX lbuf ---\n%s---", gloog())
 
         entry = {
             "room_id": stats["room_id"],
